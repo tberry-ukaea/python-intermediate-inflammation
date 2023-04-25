@@ -2,12 +2,52 @@
 
 The Model layer is responsible for the 'business logic' part of the software.
 
-Patients' data is held in an inflammation table (2D array) where each row contains 
-inflammation data for a single patient taken over a number of days 
+Patients' data is held in an inflammation table (2D array) where each row
+contains inflammation data for a single patient taken over a number of days
 and each column represents a single day across all patients.
 """
 
 import numpy as np
+
+
+class Observation:
+    def __init__(self, day, value):
+        self.day = day
+        self.value = value
+
+    def __str__(self):
+        return self.value
+
+
+class Person:
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+
+class Patient(Person):
+    """A patient in an inflammation study."""
+    def __init__(self, name, observations=None):
+        super().__init__(name)
+
+        self.observations = []
+        if observations is not None:
+            self.observations = observations
+
+    def add_observation(self, value, day=None):
+        if day is None:
+            try:
+                day = self.observations[-1].day + 1
+
+            except IndexError:
+                day = 0
+
+        new_observation = Observation(value, day)
+
+        self.observations.append(new_observation)
+        return new_observation
 
 
 def load_csv(filename):
@@ -32,3 +72,25 @@ def daily_min(data):
     """Calculate the daily min of a 2D inflammation data array."""
     return np.min(data, axis=0)
 
+
+def patient_normalise(data):
+    """
+    Normalise patient data from a 2D inflammation data array.
+
+    NaN values are ignored, and normalised to 0.
+
+    Negative values are rounded to 0.
+    """
+    maxima = np.nanmax(data, axis=1)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        normalised = data / maxima[:, np.newaxis]
+    normalised[np.isnan(normalised)] = 0
+    normalised[normalised < 0] = 0
+    return normalised
+
+
+def display_patient_record(patient):
+    """Display data for a single patient."""
+    print(patient.name)
+    for obs in patient.observations:
+        print(obs.day, obs.value)
